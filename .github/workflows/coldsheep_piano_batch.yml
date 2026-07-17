@@ -28,7 +28,6 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          YTDLP_PROXY: ${{ secrets.YTDLP_PROXY }}
           COLDSHEEP_CHANNEL_ID: ${{ secrets.COLDSHEEP_CHANNEL_ID }}
         run: python list_videos.py
 
@@ -39,4 +38,5 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BATCH_SIZE: "8"
           PIANO_THRESHOLD: "0.12"
+          YTDLP_PROXY: ${{ secrets.YTDLP_PROXY }}
         run: python process_video.py
