@@ -1,0 +1,41 @@
+name: Coldsheep Piano Batch
+
+on:
+  schedule:
+    - cron: "0 15 * * *"  # 매일 00:00 KST (UTC 15:00 전날)
+  workflow_dispatch:       # cron-job.org 또는 수동 트리거용
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330   # GH Actions 6시간 제한 안에서 여유 두고 컷
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install python deps
+        run: pip install -r requirements.txt
+
+      - name: 신규 영상 체크 (채널에 새로 올라온 것만 큐에 추가)
+        working-directory: scripts
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          COLDSHEEP_CHANNEL_ID: ${{ secrets.COLDSHEEP_CHANNEL_ID }}
+        run: python list_videos.py
+
+      - name: 배치 처리 (피아노 구간 탐지 + 컷 편집 + 업로드)
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BATCH_SIZE: "8"
+          PIANO_THRESHOLD: "0.12"
+        run: python process_video.py
