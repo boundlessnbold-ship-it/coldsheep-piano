@@ -20,10 +20,16 @@ HOP_SECONDS = 0.48
 WINDOW_SECONDS = 0.96
 
 # 튜닝 파라미터 (필요하면 process_video.py에서 오버라이드)
-DEFAULT_THRESHOLD = 0.12
-DEFAULT_MERGE_GAP_SECONDS = 3.0
-DEFAULT_MIN_DURATION_SECONDS = 15.0
+# 길거리 피아노는 주변 소음(말소리/박수/환호) 때문에 YAMNet의 순간 점수가
+# 연주 중간중간 뚝뚝 떨어지기 쉬워서, 기본값을 관대하게 잡았다.
+DEFAULT_THRESHOLD = 0.08
+DEFAULT_MERGE_GAP_SECONDS = 6.0
+DEFAULT_MIN_DURATION_SECONDS = 8.0
 DEFAULT_PAD_SECONDS = 1.0
+
+# 소음 환경에서 "Piano" 단일 클래스만 보면 자주 놓치므로,
+# 관련 클래스 중 최댓값을 사용한다.
+TARGET_CLASSES = ["Piano", "Keyboard (musical)"]
 
 
 def _load_model():
@@ -64,10 +70,9 @@ def detect_piano_segments(
     scores, embeddings, spectrogram = model(waveform)
     scores = scores.numpy()  # (num_frames, 521)
 
-    piano_idx = class_names.index("Piano")
-    # 참고: "Keyboard (musical)"도 있음. 콜드쉽 영상이 어쿠스틱 피아노 위주라
-    # Piano 단일 클래스로 시작하고, 오탐/누락이 많으면 두 클래스 max로 바꿀 것.
-    piano_scores = scores[:, piano_idx]
+    piano_idx = [class_names.index(c) for c in TARGET_CLASSES]
+    # 여러 클래스 중 프레임별 최댓값을 사용 (Piano 단일 클래스보다 소음에 안정적)
+    piano_scores = scores[:, piano_idx].max(axis=1)
 
     is_piano = piano_scores > threshold
 
