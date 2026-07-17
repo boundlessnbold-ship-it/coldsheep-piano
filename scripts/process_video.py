@@ -26,7 +26,10 @@ from piano_detector import detect_piano_segments
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "8"))
-PIANO_THRESHOLD = float(os.environ.get("PIANO_THRESHOLD", "0.12"))
+PIANO_THRESHOLD = float(os.environ.get("PIANO_THRESHOLD", "0.08"))
+MERGE_GAP_SECONDS = float(os.environ.get("MERGE_GAP_SECONDS", "6.0"))
+MIN_DURATION_SECONDS = float(os.environ.get("MIN_DURATION_SECONDS", "8.0"))
+PAD_SECONDS = float(os.environ.get("PAD_SECONDS", "1.0"))
 STORAGE_BUCKET = "coldsheep-piano"  # Supabase Storage에 미리 private 버킷으로 생성해둘 것
 
 # YouTube가 GitHub Actions 데이터센터 IP를 봇으로 막는 경우가 많아서
@@ -130,8 +133,13 @@ def process_one(video: dict):
         wav_path = workdir / f"{video_id}.wav"
 
         download_audio(video_url, wav_path)
-        segments = detect_piano_segments(str(wav_path), threshold=PIANO_THRESHOLD)
-
+        segments = detect_piano_segments(
+            str(wav_path),
+            threshold=PIANO_THRESHOLD,
+            merge_gap_seconds=MERGE_GAP_SECONDS,
+            min_duration_seconds=MIN_DURATION_SECONDS,
+            pad_seconds=PAD_SECONDS,
+        )
         if not segments:
             print(f"{video_id}: 피아노 구간 없음")
             supabase.table("coldsheep_videos").update(
