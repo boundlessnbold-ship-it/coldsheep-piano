@@ -1,0 +1,7 @@
+google-api-python-client==2.126.0
+supabase==2.5.0
+yt-dlp>=2024.7.1
+tensorflow==2.16.1
+tensorflow-hub==0.16.1
+numpy>=1.26.0
+scipy>=1.13.0
