@@ -9,6 +9,7 @@ coldsheep_videos 테이블에서 status='pending' 인 영상을 배치로 가져
   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
   BATCH_SIZE (기본 8)
   PIANO_THRESHOLD (기본 0.12)
+  YTDLP_PROXY (선택 - YouTube 봇 감지 우회용, 형식: http://user:pass@host:port)
 """
 
 import os
@@ -28,6 +29,11 @@ BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "8"))
 PIANO_THRESHOLD = float(os.environ.get("PIANO_THRESHOLD", "0.12"))
 STORAGE_BUCKET = "coldsheep-piano"  # Supabase Storage에 미리 private 버킷으로 생성해둘 것
 
+# YouTube가 GitHub Actions 데이터센터 IP를 봇으로 막는 경우가 많아서
+# 기존에 쓰던 Webshare 프록시를 재사용한다.
+# 형식 예: http://username:password@p.webshare.io:80
+YTDLP_PROXY = os.environ.get("YTDLP_PROXY")
+
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 
@@ -38,10 +44,11 @@ def run(cmd: list[str]):
 
 def download_audio(video_url: str, out_wav: Path):
     # 오디오만 최소 용량으로 받아서 16kHz mono wav로 변환 (YAMNet 입력 스펙)
-    run([
-        "yt-dlp", "-f", "bestaudio", "-o", str(out_wav.with_suffix(".src.%(ext)s")),
-        video_url,
-    ])
+    cmd = ["yt-dlp", "-f", "bestaudio"]
+    if YTDLP_PROXY:
+        cmd += ["--proxy", YTDLP_PROXY]
+    cmd += ["-o", str(out_wav.with_suffix(".src.%(ext)s")), video_url]
+    run(cmd)
     src = next(out_wav.parent.glob(out_wav.stem + ".src.*"))
     run([
         "ffmpeg", "-y", "-i", str(src),
@@ -53,13 +60,16 @@ def download_audio(video_url: str, out_wav: Path):
 
 def download_video(video_url: str, out_mp4: Path):
     # 720p 이하로 받아서 용량/처리시간 절약 (개인 감상용이라 화질 크게 안 중요)
-    run([
-        "yt-dlp",
+    cmd = ["yt-dlp"]
+    if YTDLP_PROXY:
+        cmd += ["--proxy", YTDLP_PROXY]
+    cmd += [
         "-f", "bestvideo[height<=720]+bestaudio/best[height<=720]",
         "--merge-output-format", "mp4",
         "-o", str(out_mp4),
         video_url,
-    ])
+    ]
+    run(cmd)
 
 
 def get_duration_seconds(path: Path) -> float:
