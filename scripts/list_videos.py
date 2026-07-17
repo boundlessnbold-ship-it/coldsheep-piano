@@ -114,4 +114,64 @@ def fetch_video_details(youtube, video_ids: list[str]) -> dict:
                 break
             except Exception as e:
                 wait = 5 * (2 ** attempt)
-                print(f"[재시도 {attempt+1}/{MAX_RETRIES}] {e} -> {wait}s 대기"
+                print(f"[재시도 {attempt+1}/{MAX_RETRIES}] {e} -> {wait}s 대기")
+                time.sleep(wait)
+        else:
+            raise RuntimeError("videos.list 호출 반복 실패")
+
+        for item in resp.get("items", []):
+            vid = item["id"]
+            duration = parse_iso8601_duration(
+                item.get("contentDetails", {}).get("duration", "PT0S")
+            )
+            is_live = "liveStreamingDetails" in item
+            details[vid] = {"duration_seconds": duration, "is_live": is_live}
+
+    return details
+
+
+def main():
+    youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
+    supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    uploads_playlist_id = get_uploads_playlist_id(youtube, CHANNEL_ID)
+    print(f"업로드 재생목록: {uploads_playlist_id}")
+
+    all_videos = fetch_all_uploads(youtube, uploads_playlist_id)
+    print(f"총 {len(all_videos)}개 영상 수집됨")
+
+    # 1차: 제목 키워드로 거르기 (API 호출 없이 무료)
+    candidates = [v for v in all_videos if title_matches(v["title"] or "")]
+    print(f"제목 키워드 매칭: {len(candidates)}개")
+
+    # 2차: 길이/라이브 여부 조회 후 필터 (10분 이상 + 라이브 아님)
+    details = fetch_video_details(youtube, [v["video_id"] for v in candidates])
+
+    videos = []
+    for v in candidates:
+        d = details.get(v["video_id"])
+        if d is None:
+            continue
+        if d["is_live"]:
+            continue
+        if d["duration_seconds"] < MIN_DURATION_SECONDS:
+            continue
+        videos.append(v)
+
+    print(f"최종 필터 통과: {len(videos)}개 (10분 이상, 라이브 제외)")
+
+    # video_id unique 제약 기준으로 upsert, 이미 있는 건 무시 (ignore_duplicates)
+    batch_size = 100
+    inserted = 0
+    for i in range(0, len(videos), batch_size):
+        batch = videos[i:i + batch_size]
+        result = supabase.table("coldsheep_videos").upsert(
+            batch, on_conflict="video_id", ignore_duplicates=True
+        ).execute()
+        inserted += len(result.data or [])
+
+    print(f"신규 등록: {inserted}개 (기존 영상은 건드리지 않음)")
+
+
+if __name__ == "__main__":
+    main()
