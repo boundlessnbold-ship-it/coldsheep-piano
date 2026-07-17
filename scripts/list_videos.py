@@ -79,7 +79,7 @@ def fetch_all_uploads(youtube, uploads_playlist_id: str):
                 print(f"[재시도 {attempt+1}/{MAX_RETRIES}] {e} -> {wait}s 대기")
                 time.sleep(wait)
         else:
-            raise RuntimeError("playlistItems 호출 반복 실패")
+            raise RuntimeError("videos.list 호출 반복 실패")
 
         for item in resp.get("items", []):
             snippet = item["snippet"]
