@@ -41,4 +41,5 @@ jobs:
           MERGE_GAP_SECONDS: "6.0"
           MIN_DURATION_SECONDS: "8.0"
           YTDLP_PROXY: ${{ secrets.YTDLP_PROXY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python process_video.py

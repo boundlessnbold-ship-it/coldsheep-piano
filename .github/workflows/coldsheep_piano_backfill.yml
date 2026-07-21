@@ -1,0 +1,27 @@
+name: Coldsheep Piano Backfill Song Guess
+
+on:
+  workflow_dispatch:  # 수동 실행 전용 (스케줄 없음)
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install python deps
+        run: pip install supabase requests
+
+      - name: 기존 mp3 곡명 추정 백필
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BACKFILL_LIMIT: "50"
+        run: python backfill_song_guess.py
