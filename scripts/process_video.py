@@ -20,6 +20,7 @@ coldsheep_videos 테이블에서 status='pending' 인 영상을 배치로 가져
   YTDLP_PROXY (선택 - YouTube 봇 감지 우회용, 형식: http://user:pass@host:port)
 """
 
+import base64
 import os
 import subprocess
 import sys
@@ -27,6 +28,7 @@ import tempfile
 import traceback
 from pathlib import Path
 
+import requests
 from supabase import create_client
 
 from piano_detector import detect_piano_segments
@@ -44,6 +46,11 @@ STORAGE_BUCKET = "coldsheep-piano"  # Supabase Storage에 미리 private 버킷�
 # 기존에 쓰던 Webshare 프록시를 재사용한다.
 # 형식 예: http://username:password@p.webshare.io:80
 YTDLP_PROXY = os.environ.get("YTDLP_PROXY")
+
+# 곡명 추정용 Gemini. 메인 파이프라인 쿼터(하루 250회)와 별개로 쓰려면
+# 여기엔 별도 발급받은 키를 넣는 걸 추천 (기존에 test repo용 키 쓰던 패턴과 동일).
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
@@ -118,6 +125,48 @@ def upload_to_storage(local_path: Path, video_id: str) -> str:
     return storage_path
 
 
+def guess_song(mp3_path: Path, video_title: str) -> str | None:
+    """Gemini에 오디오를 들려주고 원곡을 추정시킨다. 실패/키없음이면 None 반환."""
+    if not GEMINI_API_KEY:
+        return None
+
+    with open(mp3_path, "rb") as f:
+        audio_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    prompt = (
+        "이 오디오는 길거리 피아니스트가 즉흥적으로 연주한 클립입니다. "
+        "전곡이 아니라 일부만 발췌됐거나, 편곡·즉흥연주라서 원곡과 다르게 들릴 수 있고, "
+        "여러 곡이 이어서 연주된 메들리일 수도 있습니다. "
+        f"참고로 원본 영상 제목은 '{video_title}' 입니다. "
+        "이 연주에 포함된 곡을 모두 찾아서 각각 '아티스트 - 곡명' 형식으로 답하되, "
+        "여러 곡이면 쉼표(,)로 구분해서 나열하세요 (예: '아티스트1 - 곡명1, 아티스트2 - 곡명2'). "
+        "확신이 없는 곡은 포함하지 말고, 확실한 것만 답하세요. "
+        "하나도 확신이 없으면 '추정 불가' 라고만 답하세요. "
+        "설명이나 부연 설명은 절대 붙이지 마세요."
+    )
+
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    )
+    payload = {
+        "contents": [{
+            "parts": [
+                {"text": prompt},
+                {"inline_data": {"mime_type": "audio/mpeg", "data": audio_b64}},
+            ]
+        }]
+    }
+
+    resp = requests.post(url, json=payload, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+    try:
+        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (KeyError, IndexError):
+        return None
+
+
 def process_one(video: dict):
     video_id = video["video_id"]
     video_url = video["video_url"]
@@ -161,13 +210,20 @@ def process_one(video: dict):
 
         storage_path = upload_to_storage(out_path, video_id)
 
+        song_guess = None
+        try:
+            song_guess = guess_song(out_path, video.get("title") or "")
+        except Exception as e:
+            print(f"{video_id}: 곡명 추정 실패 (무시하고 진행) - {e}")
+
         supabase.table("coldsheep_videos").update({
             "status": "done",
             "piano_segments": segments,
             "output_path": storage_path,
+            "song_guess": song_guess,
         }).eq("video_id", video_id).execute()
 
-        print(f"{video_id}: 완료 -> {storage_path}")
+        print(f"{video_id}: 완료 -> {storage_path} (추정곡: {song_guess})")
 
 
 def main():
