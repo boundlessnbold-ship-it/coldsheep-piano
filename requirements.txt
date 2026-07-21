@@ -5,3 +5,4 @@ tensorflow==2.16.1
 tensorflow-hub==0.16.1
 numpy>=1.26.0
 scipy>=1.13.0
+requests>=2.31.0
