@@ -50,7 +50,7 @@ YTDLP_PROXY = os.environ.get("YTDLP_PROXY")
 # 곡명 추정용 Gemini. 메인 파이프라인 쿼터(하루 250회)와 별개로 쓰려면
 # 여기엔 별도 발급받은 키를 넣는 걸 추천 (기존에 test repo용 키 쓰던 패턴과 동일).
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
