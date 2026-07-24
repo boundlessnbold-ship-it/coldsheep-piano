@@ -227,9 +227,14 @@ def process_one(video: dict):
 
 
 def main():
-    result = supabase.table("coldsheep_videos").select("*").eq(
-        "status", "pending"
-    ).limit(BATCH_SIZE).execute()
+    result = (
+        supabase.table("coldsheep_videos")
+        .select("*")
+        .eq("status", "pending")
+        .order("published_at", desc=True)  # 최신 업로드 영상부터 우선 처리
+        .limit(BATCH_SIZE)
+        .execute()
+    )
     videos = result.data or []
 
     if not videos:
