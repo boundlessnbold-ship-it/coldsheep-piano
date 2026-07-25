@@ -32,6 +32,7 @@ CHANNEL_ID = os.environ["COLDSHEEP_CHANNEL_ID"]  # 예: UCBN1K8xke1spkXI5e2nogYw
 
 MAX_RETRIES = 3
 MIN_DURATION_SECONDS = 600  # 10분
+MAX_DURATION_SECONDS = 7200  # 2시간 - 이보다 길면 라이브 녹화본/마라톤 영상일 가능성이 높아 제외
 TITLE_KEYWORDS = ["길거리", "스트릿", "피아노"]
 
 _DURATION_RE = re.compile(
@@ -79,7 +80,7 @@ def fetch_all_uploads(youtube, uploads_playlist_id: str):
                 print(f"[재시도 {attempt+1}/{MAX_RETRIES}] {e} -> {wait}s 대기")
                 time.sleep(wait)
         else:
-            raise RuntimeError("videos.list 호출 반복 실패")
+            raise RuntimeError("playlistItems 호출 반복 실패")
 
         for item in resp.get("items", []):
             snippet = item["snippet"]
@@ -156,9 +157,11 @@ def main():
             continue
         if d["duration_seconds"] < MIN_DURATION_SECONDS:
             continue
+        if d["duration_seconds"] > MAX_DURATION_SECONDS:
+            continue
         videos.append(v)
 
-    print(f"최종 필터 통과: {len(videos)}개 (10분 이상, 라이브 제외)")
+    print(f"최종 필터 통과: {len(videos)}개 (10분 이상 2시간 이하, 라이브 제외)")
 
     # video_id unique 제약 기준으로 upsert, 이미 있는 건 무시 (ignore_duplicates)
     batch_size = 100
