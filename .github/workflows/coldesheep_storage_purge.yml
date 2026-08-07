@@ -1,0 +1,30 @@
+name: coldsheep storage purge
+
+on:
+  workflow_dispatch:
+    inputs:
+      before:
+        description: '이 날짜 이전 게시 영상'
+        default: '2022-01-01'
+      execute:
+        description: '실제 삭제 (false면 미리보기)'
+        type: choice
+        options: ['false', 'true']
+        default: 'false'
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 정리 실행
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python purge_coldsheep_storage.py \
+            --before "${{ github.event.inputs.before }}" \
+            ${{ github.event.inputs.execute == 'true' && '--execute' || '' }}
