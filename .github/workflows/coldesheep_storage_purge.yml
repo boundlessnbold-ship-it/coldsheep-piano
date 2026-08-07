@@ -23,7 +23,7 @@ jobs:
       - name: 정리 실행
         env:
           SUPABASE_URL:         ${{secrets.SUPABASE_URL}}
-          SUPABASE_SERVICE_ROLE_KEY: $[{secrets_SUPABASE_SERVICE_ROLE_KEY}}
+          SUPABASE_SERVICE_KEY: $[{secrets_SUPABASE_SERVICE_KEY}}
         run: |
           python purge_coldsheep_storage.py \
             --before "${{ github.event.inputs.before }}" \
