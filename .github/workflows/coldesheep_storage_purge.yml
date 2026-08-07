@@ -22,8 +22,8 @@ jobs:
           python-version: '3.11'
       - name: 정리 실행
         env:
-          SUPABASE_URL:         ${https://ttexylvtkqpzpfxgnipy.supabase.c​o}
-          SUPABASE_SERVICE_ROLE_KEY: ${eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0ZXh5bHZ0a3FwenBmeGduaXB5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mjk2MTA5MCwiZXhwIjoyMDk4NTM3MDkwfQ.iRYVaDfDLHC6c9bUf4fnR2kxg48xbTd2YdJhPnUwxXM}
+          SUPABASE_URL:         ${{secrets.SUPABASE_URL}}
+          SUPABASE_SERVICE_ROLE_KEY: $[{secrets_SUPABASE_SERVICE_ROLE_KEY}}
         run: |
           python purge_coldsheep_storage.py \
             --before "${{ github.event.inputs.before }}" \
