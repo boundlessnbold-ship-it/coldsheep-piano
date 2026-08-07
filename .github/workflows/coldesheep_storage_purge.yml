@@ -20,11 +20,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: 정리 실행
-        env:
+      - name: 정리 실행      
+        run: |
+          echo "URL len=${#SUPABASE_URL}"
+          echo "KEY len=${#SUPABASE_SERVICE_KEY}"
+          env:
           SUPABASE_URL:         ${{secrets.SUPABASE_URL}}
           SUPABASE_SERVICE_KEY: $[{secrets_SUPABASE_SERVICE_KEY}}
-        run: |
           python purge_coldsheep_storage.py \
             --before "${{ github.event.inputs.before }}" \
             ${{ github.event.inputs.execute == 'true' && '--execute' || '' }}
