@@ -1,0 +1,25 @@
+name: Coldsheep Piano Purge Old Storage
+
+on:
+  workflow_dispatch:  # 수동 실행 전용
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install python deps
+        run: pip install supabase
+
+      - name: 2022-12-31 이전 영상 Storage 삭제
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python purge_old_storage.py
