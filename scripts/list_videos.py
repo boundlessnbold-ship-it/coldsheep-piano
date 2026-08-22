@@ -34,7 +34,7 @@ MAX_RETRIES = 3
 MIN_DURATION_SECONDS = 600  # 10분
 MAX_DURATION_SECONDS = 7200  # 2시간 - 이보다 길면 라이브 녹화본/마라톤 영상일 가능성이 높아 제외
 MIN_PUBLISHED_AT = "2025-01-01T00:00:00Z"  # 이 날짜 이전 업로드는 대상에서 제외
-TITLE_KEYWORDS = ["길거리", "스트릿", "피아노"]
+TITLE_KEYWORDS = ["길거리", "스트릿", "피아노", "연주", "쳤더니", "쳐봤", "메들리"]
 
 _DURATION_RE = re.compile(
     r"P(?:\d+D)?T(?:(?P<h>\d+)H)?(?:(?P<m>\d+)M)?(?:(?P<s>\d+)S)?"
