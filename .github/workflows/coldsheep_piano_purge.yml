@@ -2,6 +2,15 @@ name: Coldsheep Piano Purge Old Storage
 
 on:
   workflow_dispatch:  # 수동 실행 전용
+    inputs:
+      start_date:
+        description: '삭제 시작일 (포함, 예: 2023-01-01)'
+        required: true
+        default: '2023-01-01'
+      end_date:
+        description: '삭제 종료일 (미포함, 예: 2024-01-01 -> 2023년 전체)'
+        required: true
+        default: '2024-01-01'
 
 jobs:
   purge:
@@ -17,9 +26,11 @@ jobs:
       - name: Install python deps
         run: pip install supabase
 
-      - name: 2022-12-31 이전 영상 Storage 삭제
+      - name: 지정 기간 영상 Storage 삭제
         working-directory: scripts
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PURGE_START_DATE: ${{ inputs.start_date }}
+          PURGE_END_DATE: ${{ inputs.end_date }}
         run: python purge_old_storage.py
