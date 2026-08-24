@@ -1,5 +1,6 @@
 """
-published_at이 2022-12-31 이전인 영상들의 mp3를 Storage에서 완전히 삭제한다.
+published_at이 지정한 기간(START_DATE ~ END_DATE) 안에 속하는 영상들의 mp3를
+Storage에서 완전히 삭제한다.
 Supabase Storage 대시보드에서 폴더째로 지울 때 하위 파일이 다 안 지워지고
 남는 경우가 있어서, 폴더 안 파일 목록을 직접 조회해서 확실하게 지운다.
 
@@ -9,6 +10,9 @@ Supabase Storage 대시보드에서 폴더째로 지울 때 하위 파일이 다
 
 필요한 환경변수:
   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+  PURGE_START_DATE (예: "2023-01-01")
+  PURGE_END_DATE   (예: "2024-01-01", 이 날짜는 미포함 - 즉 2023년 전체만 지우려면
+                     START=2023-01-01, END=2024-01-01)
 """
 
 import os
@@ -18,7 +22,8 @@ from supabase import create_client
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 STORAGE_BUCKET = "coldsheep-piano"
-CUTOFF_DATE = "2022-12-31"
+PURGE_START_DATE = os.environ["PURGE_START_DATE"]
+PURGE_END_DATE = os.environ["PURGE_END_DATE"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
@@ -27,12 +32,13 @@ def main():
     result = (
         supabase.table("coldsheep_videos")
         .select("video_id, title, published_at, output_path")
-        .lt("published_at", CUTOFF_DATE)
+        .gte("published_at", PURGE_START_DATE)
+        .lt("published_at", PURGE_END_DATE)
         .eq("status", "done")
         .execute()
     )
     rows = result.data or []
-    print(f"삭제 대상: {len(rows)}개 (published_at < {CUTOFF_DATE})")
+    print(f"삭제 대상: {len(rows)}개 ({PURGE_START_DATE} ~ {PURGE_END_DATE} 미만)")
 
     deleted = 0
     errors = []
