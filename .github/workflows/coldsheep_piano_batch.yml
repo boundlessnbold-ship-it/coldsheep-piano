@@ -1,8 +1,8 @@
 name: Coldsheep Piano Batch
 
 on:
-  schedule:
-    - cron: "0 15 * * *"  # 매일 00:00 KST (UTC 15:00 전날)
+ # schedule:
+ #  - cron: "0 15 * * *"  # 매일 00:00 KST (UTC 15:00 전날)
   workflow_dispatch:       # cron-job.org 또는 수동 트리거용
 
 jobs:
