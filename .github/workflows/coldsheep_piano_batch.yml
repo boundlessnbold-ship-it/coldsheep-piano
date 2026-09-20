@@ -1,9 +1,14 @@
 name: Coldsheep Piano Batch
 
 on:
- # schedule:
- #  - cron: "0 15 * * *"  # 매일 00:00 KST (UTC 15:00 전날)
+  # schedule:
+  #  - cron: "0 15 * * *"  # 매일 00:00 KST (UTC 15:00 전날)
   workflow_dispatch:       # cron-job.org 또는 수동 트리거용
+    inputs:
+      target_date:
+        description: '특정 날짜만 수집 (YYYY-MM-DD). 비워두면 기존처럼 2025-01-01 이후 전체 대상'
+        required: false
+        default: ''
 
 jobs:
   process:
@@ -22,13 +27,14 @@ jobs:
       - name: Install python deps
         run: pip install -r requirements.txt
 
-      - name: 신규 영상 체크 (채널에 새로 올라온 것만 큐에 추가)
+      - name: 신규 영상 체크 (특정 날짜 또는 전체)
         working-directory: scripts
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           COLDSHEEP_CHANNEL_ID: ${{ secrets.COLDSHEEP_CHANNEL_ID }}
+          TARGET_DATE: ${{ inputs.target_date }}
         run: python list_videos.py
 
       - name: 배치 처리 (피아노 구간 탐지 + 컷 편집 + 업로드)
