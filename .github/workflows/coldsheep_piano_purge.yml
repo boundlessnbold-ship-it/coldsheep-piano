@@ -3,13 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       start_date:
-        description: '삭제 시작일 (포함, 예: 2025-01-01)'
-        required: true
-        default: '2025-01-01'
-      end_date:
-        description: '삭제 종료일 (미포함, 예: 2025-04-01 -> 2025년 1~3월 전체)'
+        description: '삭제 시작일 (포함, 예: 2025-04-01)'
         required: true
         default: '2025-04-01'
+      end_date:
+        description: '삭제 종료일 (미포함, 예: 2025-07-01 -> 2025년 4~6월 전체)'
+        required: true
+        default: '2025-07-01'
 jobs:
   purge:
     runs-on: ubuntu-latest
